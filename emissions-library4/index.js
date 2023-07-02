@@ -3,8 +3,10 @@ import { Text, StyleSheet, View, Button, Switch, Alert,  AsyncStorage, Platform}
 import React, {useState, useEffect, useRef, Component, useContext} from 'react';
 import database1 from 'emissions-library4/firebase';
 import firebase from 'firebase/compat/app';
+import * as Application from 'expo-application';
 import { firestore, getDatabase, ref, onValue, set, collection, addDoc } from "firebase/compat/firestore";
 import { doc, setDoc } from "firebase/firestore"; 
+import * as Device from 'expo-device';
 import UserContext, { UserContextProvider } from '../../src/context';
 
 let dataPlanArray = [];
@@ -27,8 +29,6 @@ function LocationFinderComponent () {
   var phoneModel = null;
   console.log(isRunning);
   const intervalIdRef = useRef(null);
-  // useRef will  persist btw renders, doesnt cause component to reupdate on change
-  // how can I get state of isEnabled into the useEffect
   useEffect(() => {
     if (!isRunning) {
       return;
@@ -43,7 +43,6 @@ function LocationFinderComponent () {
       else {
         dataPlan = false;
       }
-      /*
       if (Platform.OS === 'ios') {
         Application.getIosIdForVendorAsync()
         .then(value => {
@@ -58,10 +57,9 @@ function LocationFinderComponent () {
       phoneModel = Device.modelName;
       console.log("phone model " + phoneModel);
       // Pixel 2, iPhone X
-      phoneOs = Device.osName;
-      console.log("phoneOS " + phoneOs);
+      phoneOS = Device.osName;
+      console.log("phoneOS " + phoneOS);
       // IOS, android 
-      */
       // gets dataPlan value from AsyncStorage which persists betweeen screen shifts
       console.log("data plan array length " + dataPlanArray.length);
       if (status !== 'granted') {
@@ -83,12 +81,12 @@ function LocationFinderComponent () {
         // then the array will be emptied 
         //  storePhoneId, devName, phoneModel, phoneOs
         else if (dataPlan == true && (dataPlanArray.length != 0)) {
-            create(dataPlanArray[0]);
+            create(dataPlanArray[0], phoneModel, phoneOS, devName);
             console.log(dataPlanArray[0]);
             dataPlanArray.shift();
         }
         else {
-          create(acquired_location);
+          create(acquired_location, phoneModel, phoneOS, devName);
           console.log(acquired_location);
         }
       }
@@ -100,46 +98,31 @@ function LocationFinderComponent () {
     })();
   }, [isRunning]);
 
-  
-  const create = (acquired_location) => {
-    console.log("collected fields ");
-    console.log(storePhoneId);
-    console.log(devName);
-    console.log(phoneModel);
-    console.log(phoneOs);
+  const create = (acquired_location, phoneModel, phoneOS, devName) => {
     const db = firebase.firestore();
     db.collection('LocationCollector').add({
       locationVal: acquired_location,
       collectedTime: firebase.firestore.FieldValue.serverTimestamp() // gives date, hour, min, second
     });
     const data = {
-      id: 0,
       deviceName: devName,
       phoneModel: phoneModel,
-      phoneOs: phoneOs,
-      accuracy: 123.456,
-      altitude: 435.234,
-      altitudeAccuracy: 222.333,
-      heading: 1,
-      latitude: 324554,
-      longitude: 333333,
-      speed: 1234,
-      timestamp: 555555
+      phoneOS: phoneOS,
+      accuracy: acquired_location.coords.accuracy,
+      altitude: acquired_location.coords.altitude,
+      altitudeAccuracy: acquired_location.coords.altitudeAccuracy,
+      heading: acquired_location.coords.heading,
+      latitude: acquired_location.coords.latitude,
+      longitude: acquired_location.coords.longitude,
+      speed: acquired_location.coords.speed,
+      timestamp: acquired_location.timestamp
     }
-    /*
     fetch('http://10.0.0.6:3000/locationsPost', {
-      // I need the object to automatically obtain all this data -> work on this tmrw
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(data)
-    })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error('Failed to create location');
-      }
-      return response.json();
     })
     .then(data => {
       console.log(data);
@@ -147,7 +130,6 @@ function LocationFinderComponent () {
     .catch(error => {
       console.error("error is ", error);
     });
-    */
   }
 
   function startTrip() {
@@ -157,6 +139,7 @@ function LocationFinderComponent () {
   function endTrip() {
     console.log("in endTrip button");
     clearInterval(intervalIdRef.current);
+    // best practice to clear the interval even though we are changing the isRunning state to false
     setIsRunning(false);
   }
 
