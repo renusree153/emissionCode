@@ -31,13 +31,13 @@ app.get('/Locations', async(req, res)=> {
 })
 
 app.post('/locationsPost', async(req,res) => {
-    const {id, deviceName, phoneModel, phoneOS, accuracy, altitude, altitudeAccuracy, heading, latitude, longitude, speed, timestamp} = req.body;
+    const {deviceName, phoneModel, phoneOS, accuracy, altitude, altitudeAccuracy, heading, latitude, longitude, speed, timestamp} = req.body;
     try {
-        const newLoc = await location.create({id, deviceName, phoneModel, phoneOS, accuracy, altitude, altitudeAccuracy, heading, latitude, longitude, speed, timestamp});
+        const newLoc = await location.create({deviceName, phoneModel, phoneOS, accuracy, altitude, altitudeAccuracy, heading, latitude, longitude, speed, timestamp});
         res.status(201).json(newLoc);
     }
     catch (error) {
-        console.log(error.message);
+        console.log("posting to locationsPost is not working!! " + error.message);
         res.status(500).json({error: 'Failed !!'});
     }
 })
